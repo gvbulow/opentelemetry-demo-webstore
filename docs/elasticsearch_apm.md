@@ -37,6 +37,6 @@ The alternative configuration connects Agents directly to APM (where possible). 
 
 ### Limitations
 
-Applying the changes described above to `frontend` and `emailservice` will not work. No data is received by APM, with no errors indicated in any of the logs. The APM Service Map refelects this:
+Applying the changes described above to `frontend` and `emailservice` will not work. No data from these two services is received by APM, with no errors indicated in any of the logs. The APM Service Map reflects this:
 
 [![Elasticsearch APM Service Map broken](./img/apm-service-map-broken.png)](./img/apm-service-map-broken.png)
