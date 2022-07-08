@@ -22,6 +22,6 @@ Check connection to APM with `curl http://localhost:8200`. Expected result:
 
 The basic configuration just adds an OTLP Exporter pointing to APM to the OpenTelemetry Collector. After running `docker compose up -d` data will start flowing into APM. The APM Service Map will look like this:
 
-[![Elasticsearch APM Service Map](../img/apm-service-map.png)](../img/apm-service-map.png)
+[![Elasticsearch APM Service Map](./img/apm-service-map.png)](./img/apm-service-map.png)
 
 ## Connecting OpenTelemetry Agents directly to APM
