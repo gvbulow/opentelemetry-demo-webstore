@@ -47,6 +47,12 @@ all the images will be build):
 docker compose up
 ```
 
+- To connect services directly to Elasticsearch APM, use this version of the command:
+
+```shell
+docker compose -f docker-compose-apm.yml up -d
+```
+
 ### Verify the Webstore & the Telemetry
 
 Once the images are built and containers are started you can access:
