@@ -53,6 +53,8 @@ docker compose up
 docker compose -f docker-compose-apm.yml up -d
 ```
 
+See [Integration with Elasticsearch APM](./docs/elasticsearch_apm.md) for details.
+
 ### Verify the Webstore & the Telemetry
 
 Once the images are built and containers are started you can access:
