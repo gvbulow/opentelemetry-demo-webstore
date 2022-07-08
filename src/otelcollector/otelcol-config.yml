@@ -12,7 +12,10 @@ exporters:
   logging:
   prometheus:
     endpoint: "otelcol:9464"
-
+  otlp:
+    endpoint: host.docker.internal:8200
+    tls:
+      insecure: true
 
 processors:
   batch:
@@ -22,8 +25,12 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging, jaeger]
+      exporters: [logging, jaeger, otlp]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, logging, otlp]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]    
