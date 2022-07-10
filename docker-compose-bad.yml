@@ -1,18 +1,6 @@
 version: '3.9'
 services:
 
-  # Collector
-  otelcol:
-    image: otel/opentelemetry-collector:0.52.0
-    command: [ "--config=/etc/otelcol-config-apm.yml" ]
-    volumes:
-      - ./src/otelcollector/otelcol-config-apm.yml:/etc/otelcol-config-apm.yml
-    ports:
-      - "4317"
-      - "4318"
-      - "9464"
-      - "8888:8888"
-
   # Redis
   redis-cart:
     image: redis:alpine
@@ -114,8 +102,6 @@ services:
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
       - OTEL_RESOURCE_ATTRIBUTES=service.name=emailservice
-    depends_on:
-      - otelcol
 
   # Frontend
   frontend:
@@ -134,18 +120,16 @@ services:
       - PRODUCT_CATALOG_SERVICE_ADDR
       - RECOMMENDATION_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200/v1/traces
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
       - OTEL_RESOURCE_ATTRIBUTES=service.name=frontend
     depends_on:
       - adservice
       - cartservice
       - checkoutservice
       - currencyservice
-      - otelcol
       - productcatalogservice
       - recommendationservice
       - shippingservice
