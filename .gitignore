@@ -23,3 +23,4 @@ obj/
 build/
 node_modules/
 *.log
+src/shippingservice/target/
