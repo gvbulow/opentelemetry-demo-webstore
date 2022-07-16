@@ -35,8 +35,27 @@ The alternative configuration connects Agents directly to APM (where possible). 
       - OTEL_METRICS_EXPORTER=otlp
 ```
 
+Note that for the `frontend` service the version of the OpenTelemetry components for Go had to be updated from 1.7.0 to 1.8.0. With 1.7.0, the service wasn't exporting any traces, with no errors logged.
+
 ### Limitations
 
-Applying the changes described above to `frontend` and `emailservice` will not work. No data from these two services is received by APM, with no errors indicated in any of the logs. The APM Service Map reflects this:
+Applying the changes described above to `emailservice` will not work. With `OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200` the container logs error
+
+```
+ERROR -- : OpenTelemetry error: unexpected error decoding rpc.Status in OTLP::Exporter#log_status - Error occurred during parsing
+ERROR -- : OpenTelemetry error: Unable to export 12 spans
+```
+
+With `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://host.docker.internal:8200` the error changes to 
+
+```
+ERROR -- : OpenTelemetry error: Unable to export 4 spans
+```
+
+which indicates that the TRACES endpoint must be specified explicitly.
+
+It is very difficult to debug this because of [this](https://github.com/open-telemetry/opentelemetry-ruby/issues/1160) issue in `opentelemetry-ruby`.
+
+The APM Service Map reflects the failed connection:
 
 [![Elasticsearch APM Service Map broken](./img/apm-service-map-broken.png)](./img/apm-service-map-broken.png)
