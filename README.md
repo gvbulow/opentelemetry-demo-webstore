@@ -1,4 +1,10 @@
-# Webstore Demo
+# OpenTelemetry Demo
+
+[![Slack](https://img.shields.io/badge/slack-@cncf/otel/demo-brightgreen.svg?logo=slack)](https://cloud-native.slack.com/archives/C03B4CWV4DA)
+[![Version](https://img.shields.io/github/v/release/open-telemetry/opentelemetry-demo?color=blueviolet)](https://github.com/open-telemetry/opentelemetry-demo/releases)
+[![Commits](https://img.shields.io/github/commits-since/open-telemetry/opentelemetry-demo/latest?color=ff69b4&include_prereleases)](https://github.com/open-telemetry/opentelemetry-demo/graphs/commit-activity)
+[![Downloads](https://img.shields.io/docker/pulls/otel/demo)](https://hub.docker.com/r/otel/demo)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?color=red)](https://github.com/open-telemetry/opentelemetry-demo/blob/main/LICENSE)
 
 ## Under Construction
 
@@ -17,7 +23,7 @@ This repo is a work in progress. If you'd like to help, check out our
 - Clone the Webstore Demo repository:
 
 ```shell
-git clone https://github.com/open-telemetry/opentelemetry-demo-webstore.git
+git clone https://github.com/open-telemetry/opentelemetry-demo.git
 ```
 
 ### Open Folder
@@ -25,7 +31,7 @@ git clone https://github.com/open-telemetry/opentelemetry-demo-webstore.git
 - Navigate to the cloned folder:
 
 ```shell
-cd opentelemetry-demo-webstore/
+cd opentelemetry-demo/
 ```
 
 ### Gradle Update [Windows Only]
@@ -124,9 +130,9 @@ your backend as well.
 
 ## Architecture
 
-**Online Boutique** is composed of 10 microservices written in different
+**Online Boutique** is composed of microservices written in different programming
 languages that talk to each other over gRPC. Plus one Load Generator which uses
-Locust to fake user traffic.
+[Locust](https://locust.io/) to fake user traffic.
 
 ```mermaid
 graph TD
@@ -216,21 +222,6 @@ _To view a graph of the desired state of this application [click here](./docs/v1
 
 Find the **Protocol Buffer Definitions** in the `/pb/` directory.
 
-| Service                                              | Language      | Description                                                                                                                       |
-| ---------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| [frontend](./src/frontend/README.md)                           | Go            | Exposes an HTTP server to serve the website. Does not require signup/login and generates session IDs for all users automatically. |
-| [cartservice](./src/cartservice/README.md)                     | C#            | Stores the items in the user's shopping cart in Redis and retrieves it.                                                           |
-| [productcatalogservice](./src/productcatalogservice/README.md) | Go            | Provides the list of products from a JSON file and ability to search products and get individual products.                        |
-| [currencyservice](./src/currencyservice/README.md)             | C++      | Converts one money amount to another currency. Uses real values fetched from European Central Bank. It's the highest QPS service. |
-| [paymentservice](./src/paymentservice/README.md)               | Node.js       | Charges the given credit card info (mock) with the given amount and returns a transaction ID.                                     |
-| [shippingservice](./src/shippingservice/README.md)             | Rust            | Gives shipping cost estimates based on the shopping cart. Ships items to the given address (mock)                                 |
-| [emailservice](./src/emailservice/README.md)                   | Ruby        | Sends users an order confirmation email (mock).                                                                                   |
-| [checkoutservice](./src/checkoutservice/README.md)             | Go            | Retrieves user cart, prepares order and orchestrates the payment, shipping and the email notification.                            |
-| [recommendationservice](./src/recommendationservice/README.md) | Python        | Recommends other products based on what's given in the cart.                                                                      |
-| [adservice](./src/adservice/README.md)                         | Java          | Provides text ads based on given context words.                                                                                   |
-| [featureflagservice](./src/featureflagservice/README.md)         | Erlang/Elixir | CRUD feature flag service to demonstrate various scenarios like fault injection & how to emit telemetry from a feature flag reliant service.                                             |
-| [loadgenerator](./src/loadgenerator/README.md)                 | Python/Locust | Continuously sends requests imitating realistic user shopping flows to the frontend.                                              |
-
 ## Features
 
 - **[Kubernetes](https://kubernetes.io)**: the app is designed to run on
@@ -257,6 +248,7 @@ Find the **Protocol Buffer Definitions** in the `/pb/` directory.
 
 ## Demos featuring Online Boutique
 
+- [Datadog](https://github.com/DataDog/opentelemetry-demo-webstore)
 - [Honeycomb.io](https://github.com/honeycombio/opentelemetry-demo-webstore)
 - [Lightstep](https://github.com/lightstep/opentelemetry-demo-webstore)
 
@@ -275,7 +267,7 @@ For edit access, get in touch on
 [Slack](https://cloud-native.slack.com/archives/C03B4CWV4DA).
 
 [Maintainers](https://github.com/open-telemetry/community/blob/main/community-membership.md#maintainer)
-([@open-telemetry/demo-webstore-maintainers](https://github.com/orgs/open-telemetry/teams/demo-webstore-maintainers)):
+([@open-telemetry/demo-maintainers](https://github.com/orgs/open-telemetry/teams/demo-maintainers)):
 
 - [Austin Parker](https://github.com/austinlparker), Lightstep
 - [Carter Socha](https://github.com/cartersocha), Microsoft
@@ -283,14 +275,15 @@ For edit access, get in touch on
 - [Pierre Tessier](https://github.com/puckpuck), Honeycomb
 
 [Approvers](https://github.com/open-telemetry/community/blob/main/community-membership.md#approver)
-([@open-telemetry/demo-webstore-approvers](https://github.com/orgs/open-telemetry/teams/demo-webstore-approvers)):
+([@open-telemetry/demo-approvers](https://github.com/orgs/open-telemetry/teams/demo-approvers)):
 
 - [Juliano Costa](https://github.com/julianocosta89), Dynatrace
 - [Michael Maxwell](https://github.com/mic-max), Microsoft
 - [Mikko Viitanen](https://github.com/mviitane), Dynatrace
 - [Penghan Wang](https://github.com/wph95), AppDynamics
 - [Reiley Yang](https://github.com/reyang), Microsoft
+- [Ziqi Zhao](https://github.com/fatsheep9146), Alibaba
 
 ### Thanks to all the people who have contributed
 
-[![contributors](https://contributors-img.web.app/image?repo=open-telemetry/opentelemetry-demo-webstore)](https://github.com/open-telemetry/opentelemetry-demo-webstore/graphs/contributors)
+[![contributors](https://contributors-img.web.app/image?repo=open-telemetry/opentelemetry-demo)](https://github.com/open-telemetry/opentelemetry-demo/graphs/contributors)
