@@ -3,6 +3,13 @@ receivers:
     protocols:
       grpc:
       http:
+        cors:
+          allowed_origins:
+            - "http://localhost:8080"
+  otlp/spanmetrics:
+    protocols:
+      grpc:
+        endpoint: "localhost:65535"
 
 exporters:
   jaeger:
@@ -19,18 +26,19 @@ exporters:
 
 processors:
   batch:
+  spanmetrics:
+    metrics_exporter: prometheus
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [spanmetrics, batch]
       exporters: [logging, jaeger, otlp]
     metrics:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus, logging, otlp]
-    logs:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp]    
+    metrics/spanmetrics:
+      receivers: [ otlp/spanmetrics ]
+      exporters: [ prometheus, logging, otlp ]

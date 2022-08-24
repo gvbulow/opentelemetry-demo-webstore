@@ -29,8 +29,7 @@ function chargeServiceHandler(call, callback) {
   try {
     const amount = call.request.amount
     span.setAttributes({
-      'app.payment.currency': amount.currency_code,
-      'app.payment.cost': parseFloat(`${amount.units}.${amount.nanos}`)
+      'app.payment.amount': parseFloat(`${amount.units}.${amount.nanos}`)
     })
     logger.info(`PaymentService#Charge invoked by: ${JSON.stringify(call.request)}`)
 
@@ -55,7 +54,6 @@ async function closeGracefully(signal) {
 
 // Main
 const logger = pino()
-const port = process.env['PAYMENT_SERVICE_PORT']
 const hipsterShopPackage = grpc.loadPackageDefinition(protoLoader.loadSync('demo.proto'))
 const server = new grpc.Server()
 
@@ -65,9 +63,13 @@ server.addService(health.service, new health.Implementation({
 
 server.addService(hipsterShopPackage.hipstershop.PaymentService.service, { charge: chargeServiceHandler })
 
-server.bindAsync(`0.0.0.0:${port}`, grpc.ServerCredentials.createInsecure(), () => {
-    logger.info(`PaymentService gRPC server started on port ${port}`)
-    server.start()
+server.bindAsync(`0.0.0.0:${process.env['PAYMENT_SERVICE_PORT']}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
+  if (err) {
+    return logger.error(err)
+  }
+
+  logger.info(`PaymentService gRPC server started on port ${port}`)
+  server.start()
   }
 )
 

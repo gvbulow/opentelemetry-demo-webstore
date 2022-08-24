@@ -24,3 +24,13 @@ build/
 node_modules/
 *.log
 src/shippingservice/target/
+src/shippingservice/target/
+
+coverage
+.next/
+out/
+build
+src/frontend/protos
+next-env.d.ts
+src/frontend/cypress/videos
+src/frontend/cypress/screenshots
