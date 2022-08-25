@@ -1,43 +1,27 @@
 version: '3.9'
-x-default-logging: &logging
-  driver: "json-file"
-  options:
-    max-size: "5m"
-    max-file: "2"
-
-networks:
-  default:
-    name: opentelemetry-demo
-    driver: bridge
-
 services:
+
   # Collector
   otelcol:
-    image: otel/opentelemetry-collector-contrib:0.56.0
-    container_name: otel-col
-    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
+    image: otel/opentelemetry-collector:0.52.0
+    command: [ "--config=/etc/otelcol-config-apm.yml" ]
     volumes:
-      - ./src/otelcollector/otelcol-config.yml:/etc/otelcol-config.yml
-      - ./src/otelcollector/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
+      - ./src/otelcollector/otelcol-config-apm.yml:/etc/otelcol-config-apm.yml
     ports:
-      - "4317"          # OTLP over gRPC receiver
-      - "4318:4318"     # OTLP over HTTP receiver
-      - "9464"          # Prometheus exporter
-      - "8888"          # metrics endpoint
-    logging: *logging
+      - "4317"
+      - "4318"
+      - "9464"
+      - "8888:8888"
 
   # Redis
   redis-cart:
     image: redis:alpine
-    container_name: redis-cart
     ports:
       - "${REDIS_PORT}"
-    logging: *logging
 
   # AdService
   adservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-adservice
-    container_name: ad-service
     build:
       context: ./
       dockerfile: ./src/adservice/Dockerfile
@@ -49,13 +33,11 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=adservice
-    logging: *logging
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=adservice
 
   # CartService
   cartservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-cartservice
-    container_name: cart-service
     build:
       context: ./
       dockerfile: ./src/cartservice/src/Dockerfile
@@ -68,17 +50,14 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=cartservice
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=cartservice
       - ASPNETCORE_URLS=http://*:${CART_SERVICE_PORT}
     depends_on:
       - redis-cart
-      - otelcol
-    logging: *logging
 
   # CheckoutService
   checkoutservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-checkoutservice
-    container_name: checkout-service
     build:
       context: ./
       dockerfile: ./src/checkoutservice/Dockerfile
@@ -96,7 +75,7 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=checkoutservice
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=checkoutservice
     depends_on:
       - cartservice
       - currencyservice
@@ -104,58 +83,46 @@ services:
       - paymentservice
       - productcatalogservice
       - shippingservice
-    logging: *logging
-
+  
   # CurrencyService
   currencyservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-currencyservice
-    container_name: currency-service
     build:
       context: ./src/currencyservice
-      args:
-        - GRPC_VERSION=1.46.0
-        - OPENTELEMETRY_VERSION=1.5.0
     ports:
       - "${CURRENCY_SERVICE_PORT}"
     environment:
-      - CURRENCY_SERVICE_PORT
+      - PORT=${CURRENCY_SERVICE_PORT}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice   # The C++ SDK does not support OTEL_SERVICE_NAME
-    depends_on:
-      - otelcol
-    logging: *logging
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice
 
   # EmailService
   emailservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-emailservice
-    container_name: email-service
     build:
       context: ./src/emailservice
     ports:
       - "${EMAIL_SERVICE_PORT}"
     environment:
       - APP_ENV=production
-      - EMAIL_SERVICE_PORT
+      - PORT=${EMAIL_SERVICE_PORT}
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otelcol:4318/v1/traces
-      - OTEL_SERVICE_NAME=emailservice
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=emailservice
     depends_on:
       - otelcol
-    logging: *logging
 
   # Frontend
   frontend:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontend
-    container_name: frontend
     build:
       context: ./
       dockerfile: ./src/frontend/Dockerfile
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
-      - PORT=${FRONTEND_PORT}
       - FRONTEND_ADDR
       - AD_SERVICE_ADDR
       - CART_SERVICE_ADDR
@@ -164,64 +131,15 @@ services:
       - PRODUCT_CATALOG_SERVICE_ADDR
       - RECOMMENDATION_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_RESOURCE_ATTRIBUTES=service.name=frontend
       - OTEL_EXPORTER_OTLP_ENDPOINT
-      - ENV_PLATFORM
-      - OTEL_SERVICE_NAME=frontend
     depends_on:
       - adservice
       - cartservice
       - checkoutservice
       - currencyservice
-      - productcatalogservice
-      - recommendationservice
-      - shippingservice
-    logging: *logging
-
-  # Frontend Tests
-  frontendTests:
-    image: cypress/included:10.3.1-typescript
-    depends_on:
-      - frontend
-    profiles:
-      - tests
-    environment:
-      - CYPRESS_baseUrl=http://${FRONTEND_ADDR}
-      - NODE_ENV=production
-    working_dir: /cypress
-    volumes:
-      - ./src/frontend:/cypress
-
-  # Integration Tests
-  integrationTests:
-    image: ${IMAGE_NAME}:${IMAGE_VERSION}-integrationTests
-    container_name: integrationTests
-    profiles:
-      - tests
-    build:
-      context: ./
-      dockerfile: ./test/Dockerfile
-    environment:
-      - AD_SERVICE_ADDR
-      - CART_SERVICE_ADDR
-      - CHECKOUT_SERVICE_ADDR
-      - CURRENCY_SERVICE_ADDR
-      - EMAIL_SERVICE_ADDR
-      - PAYMENT_SERVICE_ADDR
-      - PRODUCT_CATALOG_SERVICE_ADDR
-      - RECOMMENDATION_SERVICE_ADDR
-      - SHIPPING_SERVICE_ADDR
-    depends_on:
-      - adservice
-      - cartservice
-      - checkoutservice
-      - currencyservice
-      - emailservice
-      - paymentservice
+      - otelcol
       - productcatalogservice
       - recommendationservice
       - shippingservice
@@ -229,7 +147,6 @@ services:
   # PaymentService
   paymentservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-paymentservice
-    container_name: payment-service
     build:
       context: ./
       dockerfile: ./src/paymentservice/Dockerfile
@@ -241,13 +158,11 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=paymentservice
-    logging: *logging
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=paymentservice
 
   # ProductCatalogService
   productcatalogservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-productcatalogservice
-    container_name: product-catalog-service
     build:
       context: ./
       dockerfile: ./src/productcatalogservice/Dockerfile
@@ -255,18 +170,15 @@ services:
       - "${PRODUCT_CATALOG_SERVICE_PORT}"
     environment:
       - PRODUCT_CATALOG_SERVICE_PORT
-      - FEATURE_FLAG_GRPC_SERVICE_ADDR
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=productcatalogservice
-    logging: *logging
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=productcatalogservice
 
   # RecommendationService
   recommendationservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-recommendationservice
-    container_name: recommendation-service
     build:
       context: ./
       dockerfile: ./src/recommendationservice/Dockerfile
@@ -282,86 +194,64 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=recommendationservice
-    logging: *logging
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=recommendationservice
 
   # ShippingService
   shippingservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-shippingservice
-    container_name: shipping-service
     build:
-      context: ./
-      dockerfile: ./src/shippingservice/Dockerfile
+      context: ./src/shippingservice
     ports:
       - "${SHIPPING_SERVICE_PORT}"
     environment:
-      - SHIPPING_SERVICE_PORT
+      - PORT=${SHIPPING_SERVICE_PORT}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=shippingservice
-    logging: *logging
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=shippingservice
 
   # FeatureFlagService
   featureflagservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-featureflagservice
-    container_name: feature-flag-service
     build:
       context: ./src/featureflagservice
     ports:
-      - "${FEATURE_FLAG_SERVICE_PORT}:${FEATURE_FLAG_SERVICE_PORT}"     # Feature Flag Service UI
-      - "${FEATURE_FLAG_GRPC_SERVICE_PORT}"                             # Feature Flag Service gRPC API
+      - "${FEATURE_FLAG_SERVICE_PORT}:${FEATURE_FLAG_SERVICE_PORT}"
+      - "${FEATURE_FLAG_GRPC_SERVICE_PORT}"
     environment:
-      - FEATURE_FLAG_SERVICE_PORT
-      - FEATURE_FLAG_GRPC_SERVICE_PORT
+      - PORT=${FEATURE_FLAG_SERVICE_PORT}
+      - GRPC_PORT=${FEATURE_FLAG_GRPC_SERVICE_PORT}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_SERVICE_NAME=featureflagservice
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=featureflagservice
       - DATABASE_URL=ecto://ffs:ffs@ffs_postgres:5432/ffs
     depends_on:
-      ffs_postgres:
-        condition: service_healthy
-    logging: *logging
+      - ffs_postgres
 
   ffs_postgres:
     image: cimg/postgres:14.2
-    container_name: postgres
     environment:
       - POSTGRES_USER=ffs
       - POSTGRES_DB=ffs
       - POSTGRES_PASSWORD=ffs
-    logging: *logging
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # LoadGenerator
   loadgenerator:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-loadgenerator
-    container_name: load-generator
     build:
       context: ./
       dockerfile: ./src/loadgenerator/Dockerfile
-    ports:
-      - "${LOCUST_WEB_PORT}:${LOCUST_WEB_PORT}"
     environment:
-      - LOCUST_WEB_PORT
-      - LOCUST_USERS
-      - LOCUST_HOST
-      - LOCUST_HEADLESS
-      - LOCUST_AUTOSTART
+      - FRONTEND_ADDR
+      - USERS
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:8200
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_SERVICE_NAME=loadgenerator
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=loadgenerator
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
       - frontend
-    logging: *logging
